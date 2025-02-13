@@ -1,0 +1,30 @@
+name:  Flowend WorkFlow
+on: 
+  schedule:
+    - cron: '10,30,50 0,2,4,6,8,10,12,14,16,18,20,22 * * 5'
+  
+jobs:
+  perform:
+    name: Single Test Fri
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Add ignore file
+        run: echo $CENTRAL | base64 -d > lib/central.dart
+        env:
+          CENTRAL: ${{ secrets.CENTRAL }}
+
+      - name: Set Up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Close Test
+        run: flutter test test/central_test.dart --name Close

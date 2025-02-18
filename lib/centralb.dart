@@ -818,7 +818,6 @@ class ModifiedPosition extends HomeState {
   List<Object> get props => positions.map((user) => user.id).toList();
 }
 
-
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit({
     required GetFirstQuote getFirstQuote,
@@ -1076,9 +1075,13 @@ class HomeCubit extends Cubit<HomeState> {
     return '$baseCurrency$quoteCurrency$brokerEnd';
   }
 
-   Future<double> _riskVolume() async {
+  Future<double> _riskVolume() async {
     AccountInformation accountInformation = await _showAccountInfomation();
-    double accountBalance = accountInformation.balance.toDouble();
+    double totalBalance = accountInformation.balance.toDouble();
+
+    double highestFloatingPercentage = 0.20; // twenty percent
+    double floatingFees = totalBalance * highestFloatingPercentage;
+    double accountBalance = totalBalance - floatingFees;
 
     if (accountBalance > 10000) {
       accountBalance = 10000; // that is 10 000 (ten thousand) dollars
@@ -1925,7 +1928,6 @@ class HomeCubit extends Cubit<HomeState> {
       }
     });
 
-
     if (listPosition.isEmpty) {
       // startTrading
       await startTrading().then((value) {
@@ -1967,8 +1969,6 @@ class HomeCubit extends Cubit<HomeState> {
         listPosition.add(position);
       }
     });
-
- 
 
     if (listPosition.isEmpty) {
       gender = "Female";

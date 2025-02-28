@@ -1079,7 +1079,7 @@ class HomeCubit extends Cubit<HomeState> {
     AccountInformation accountInformation = await _showAccountInfomation();
     double totalBalance = accountInformation.balance.toDouble();
 
-    double highestFloatingPercentage = 0.20; // twenty percent
+    double highestFloatingPercentage = 0.50; // fifty percent
     double floatingFees = totalBalance * highestFloatingPercentage;
     double accountBalance = totalBalance - floatingFees;
 
@@ -1922,6 +1922,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     //go check all position
     List<Position> listPosition = <Position>[];
+
     await showPositions().then((positions) {
       for (var position in positions) {
         listPosition.add(position);
@@ -2104,42 +2105,19 @@ class HomeCubit extends Cubit<HomeState> {
         smallVolumePosition.volume < bigVolumePosition[0].volume) {
       double profitCheck = smallVolumePosition.profit.toDouble();
 
-      double sameBigSmallTypeProfit = 0;
       Position oppositeBigSmallTypePosition;
 
       // find identical types from small and big volume positons
       if (smallVolumePosition.type == bigVolumePosition[0].type) {
-        sameBigSmallTypeProfit = bigVolumePosition[0].profit.toDouble();
         oppositeBigSmallTypePosition = bigVolumePosition[1];
       } else {
-        sameBigSmallTypeProfit = bigVolumePosition[1].profit.toDouble();
         oppositeBigSmallTypePosition = bigVolumePosition[0];
       }
 
-      // The sum of the following Three is equivalent to the distance to success
-      double addedFees = bigVolumePosition[0].profit.toDouble() +
-          bigVolumePosition[1]
-              .profit
-              .toDouble(); // -0.22 + (-0.22) = - 0.44 from two new big positions
-      double initialFees =
-          2.5 * addedFees / 4; // counts fees adding two positions from start
       double takenProfit =
           100 * smallVolumePosition.volume.toDouble(); // target amount
 
-      // We suppose to double up but we tripple up to account for flaution and ensure all answers are a positive sign
-      double bigAddedFees = -3 * addedFees;
-      double bigInitialFees = -3 * initialFees;
-      double bigTakenProfit = 2 * takenProfit;
-
-      // lag allows breaking points that are tracked on the  bigger volume
-      double lag = bigAddedFees + bigInitialFees + bigTakenProfit;
-      double fibonacci = takenProfit;
-      double lagFibonacci = lag + fibonacci;
-
-      if (sameBigSmallTypeProfit >= lagFibonacci) {
-        await deleteOut(
-            positions: listPosition, currentPosition: listPosition[0]);
-      } else if (profitCheck < 0) {
+      if (profitCheck < 0) {
         // profitCheck must be a negative
         // convert profitCheck to positive
         double smallProfit = -profitCheck;
@@ -2148,8 +2126,7 @@ class HomeCubit extends Cubit<HomeState> {
         double smallProfitWithFibonacci = smallProfit + takenProfit;
 
         if (oppositeBigSmallTypePositionProfit > 0 && smallProfit > 0) {
-          if (oppositeBigSmallTypePositionProfit > smallProfitWithFibonacci ||
-              oppositeBigSmallTypePositionProfit >= lagFibonacci) {
+          if (oppositeBigSmallTypePositionProfit > smallProfitWithFibonacci) {
             // delete the position with small volume
             await _deleteOneTrade(
                 positionOrOrder: smallVolumePosition, account: 'LIVE');

@@ -1201,7 +1201,7 @@ class HomeCubit extends Cubit<HomeState> {
           listPositions.add(position);
         }
 
-        await _cleanUnwantedOrders(positions: positions).then((value) {
+        await _cancelAllOrders().then((value) {
           emit(PositionsLoaded(positions));
         });
       });
@@ -1585,64 +1585,6 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  Future<void> _cleanUnwantedOrders({required List<Position> positions}) async {
-    emit(const LoadingData());
-
-    List<String> sellListPositionSymbol = <String>[];
-    List<String> buyListPositionSymbol = <String>[];
-
-    List<AOrder> sellListOrder = <AOrder>[];
-    List<AOrder> buyListOrder = <AOrder>[];
-
-    for (var position in positions) {
-      if (position.type == 'POSITION_TYPE_SELL') {
-        sellListPositionSymbol.add(position.symbol);
-      } else {
-        buyListPositionSymbol.add(position.symbol);
-      }
-    }
-
-    var value = 0;
-    await Future.doWhile(() async {
-      value++;
-      final resultAllOrder =
-          await _getAllOrder(const GetAllOrderParams(account: 'LIVE'));
-
-      resultAllOrder.fold((failure) {
-        emit(HomeError(failure.errorMessage));
-      }, (orders) async {
-        value = 3;
-        for (var order in orders) {
-          if (order.type == 'ORDER_TYPE_SELL_LIMIT' ||
-              order.type == 'ORDER_TYPE_SELL_STOP' ||
-              order.type == 'ORDER_TYPE_SELL_STOP_LIMIT') {
-            sellListOrder.add(order);
-          } else {
-            buyListOrder.add(order);
-          }
-        }
-      });
-
-      if (value == 3) {
-        print('Finished with $value');
-        return false;
-      }
-      return true;
-    });
-
-    for (var order in sellListOrder) {
-      if (!sellListPositionSymbol.contains(order.symbol)) {
-        await _deleteOneOrder(order: order);
-      }
-    }
-
-    for (var order in buyListOrder) {
-      if (!buyListPositionSymbol.contains(order.symbol)) {
-        await _deleteOneOrder(order: order);
-      }
-    }
-  }
-
   String _convertMetaApiToFinageSymbol({required String metaApiSymbol}) {
     String finageSymbol = '';
     for (var i = 0; i < 6; i++) {
@@ -1834,7 +1776,23 @@ class HomeCubit extends Cubit<HomeState> {
     });
   }
 
+  Future<void> _cancelAllOrders() async {
+    emit(const LoadingData());
+
+    final resultAllOrder =
+        await _getAllOrder(const GetAllOrderParams(account: 'LIVE'));
+
+    resultAllOrder.fold((failure) {
+      emit(HomeError(failure.errorMessage));
+    }, (orders) async {
+      for (var order in orders) {
+        await _deleteOneOrder(order: order);
+      }
+    });
+  }
+
   Future<void> _deleteOneOrder({required AOrder order}) async {
+    print("deleting one order via delete trade");
     await _deleteOneTrade(positionOrOrder: order, account: 'LIVE');
   }
 

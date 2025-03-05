@@ -818,7 +818,6 @@ class ModifiedPosition extends HomeState {
   List<Object> get props => positions.map((user) => user.id).toList();
 }
 
-
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit({
     required GetFirstQuote getFirstQuote,
@@ -1080,7 +1079,7 @@ class HomeCubit extends Cubit<HomeState> {
     AccountInformation accountInformation = await _showAccountInfomation();
     double totalBalance = accountInformation.balance.toDouble();
 
-    double highestFloatingPercentage = 0.50; // fifty percent
+    double highestFloatingPercentage = 0.75; // seventy five percent
     double floatingFees = totalBalance * highestFloatingPercentage;
     double accountBalance = totalBalance - floatingFees;
 

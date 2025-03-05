@@ -818,6 +818,7 @@ class ModifiedPosition extends HomeState {
   List<Object> get props => positions.map((user) => user.id).toList();
 }
 
+
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit({
     required GetFirstQuote getFirstQuote,
@@ -1495,7 +1496,8 @@ class HomeCubit extends Cubit<HomeState> {
         account: 'LIVE');
   }
 
-  Future<void> deleteOutAndIn({
+// TODO find another way to solve without the use of sort method
+  Future<void> deleteOutAndInFromUI({
     required List<Position> positions,
     required Position currentPosition,
   }) async {
@@ -1551,13 +1553,39 @@ class HomeCubit extends Cubit<HomeState> {
       await _makeTrade(
           actionType: "ORDER_TYPE_SELL",
           symbolMetaApiLive: currentPosition.symbol,
-          volume: optionList[optionList.length - 1].volume.toDouble() * 2,
+          volume: currentPosition.volume.toDouble() * 2,
           account: 'LIVE');
 
       await _makeTrade(
           actionType: "ORDER_TYPE_BUY",
           symbolMetaApiLive: currentPosition.symbol,
-          volume: optionList[optionList.length - 1].volume.toDouble() * 2,
+          volume: currentPosition.volume.toDouble() * 2,
+          account: 'LIVE');
+    }
+  }
+
+  Future<void> deleteOutAndIn({
+    required Position currentPosition,
+  }) async {
+    List<bool> loopBooleanDelete = <bool>[];
+
+    // currentposition get deleted
+    loopBooleanDelete.add(
+        await _deleteOnePosition(position: currentPosition, account: 'LIVE'));
+
+    if (loopBooleanDelete.isEmpty) {
+      emit(const HomeError('Delete did not happen'));
+    } else if (loopBooleanDelete.contains(true)) {
+      await _makeTrade(
+          actionType: "ORDER_TYPE_SELL",
+          symbolMetaApiLive: currentPosition.symbol,
+          volume: currentPosition.volume.toDouble() * 2,
+          account: 'LIVE');
+
+      await _makeTrade(
+          actionType: "ORDER_TYPE_BUY",
+          symbolMetaApiLive: currentPosition.symbol,
+          volume: currentPosition.volume.toDouble() * 2,
           account: 'LIVE');
     }
   }
@@ -1976,15 +2004,13 @@ class HomeCubit extends Cubit<HomeState> {
           // check if trade has such difference
           if (listPosition[0].profit.toDouble() >= requiredDollar) {
             // delete it and place in two more
-            await deleteOutAndIn(
-                positions: listPosition, currentPosition: listPosition[0]);
+            await deleteOutAndIn(currentPosition: listPosition[0]);
           }
         } else if (profitAtOne > profitAtZero) {
           // check if trade has such difference
           if (listPosition[1].profit.toDouble() >= requiredDollar) {
             // delete it and place in two more
-            await deleteOutAndIn(
-                positions: listPosition, currentPosition: listPosition[1]);
+            await deleteOutAndIn(currentPosition: listPosition[1]);
           }
         }
       }
@@ -2091,9 +2117,7 @@ class HomeCubit extends Cubit<HomeState> {
             await _deleteOneTrade(
                 positionOrOrder: smallVolumePosition, account: 'LIVE');
             // delete current position
-            await deleteOutAndIn(
-                positions: bigVolumePosition,
-                currentPosition: oppositeBigSmallTypePosition);
+            await deleteOutAndIn(currentPosition: oppositeBigSmallTypePosition);
           }
         }
       }

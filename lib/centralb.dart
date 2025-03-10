@@ -1035,24 +1035,50 @@ class HomeCubit extends Cubit<HomeState> {
     await Future.doWhile(() async {
       value++;
 
-      final resultPlaceOrder = await _placeOrder(PlaceOrderParams(
-          actionType: actionType,
-          symbol: symbol,
-          volume: volume ?? await _riskVolume(),
-          openPrice: 0.0, // value does not apply
-          stopLoss: 0.0, // value does not apply
-          takeProfit: 0.0, // value does not apply
-          account: account));
+      if (volume == null) {
+        double someRisk = await _riskVolume();
+        if (someRisk > 0.0) {
+          final resultPlaceOrder = await _placeOrder(PlaceOrderParams(
+              actionType: actionType,
+              symbol: symbol,
+              volume: someRisk,
+              openPrice: 0.0, // value does not apply
+              stopLoss: 0.0, // value does not apply
+              takeProfit: 0.0, // value does not apply
+              account: account));
 
-      resultPlaceOrder.fold(
-        (failure) async {
-          emit(HomeError(failure.errorMessage));
-        },
-        (users) {
-          value = 3;
-          emit(HomeSucess(orderType: actionType, symbol: symbol));
-        },
-      );
+          resultPlaceOrder.fold(
+            (failure) async {
+              emit(HomeError(failure.errorMessage));
+            },
+            (users) {
+              value = 3;
+              emit(HomeSucess(orderType: actionType, symbol: symbol));
+            },
+          );
+        } else {
+          print('Add more money to accountBalance!');
+        }
+      } else {
+        final resultPlaceOrder = await _placeOrder(PlaceOrderParams(
+            actionType: actionType,
+            symbol: symbol,
+            volume: volume,
+            openPrice: 0.0, // value does not apply
+            stopLoss: 0.0, // value does not apply
+            takeProfit: 0.0, // value does not apply
+            account: account));
+
+        resultPlaceOrder.fold(
+          (failure) async {
+            emit(HomeError(failure.errorMessage));
+          },
+          (users) {
+            value = 3;
+            emit(HomeSucess(orderType: actionType, symbol: symbol));
+          },
+        );
+      }
 
       if (value == 3) {
         print('Finished with $value trade');
@@ -1079,7 +1105,7 @@ class HomeCubit extends Cubit<HomeState> {
     AccountInformation accountInformation = await _showAccountInfomation();
     double totalBalance = accountInformation.balance.toDouble();
 
-    double highestFloatingPercentage = 0.75; // seventy five percent
+    double highestFloatingPercentage = 0.75; // Seventy five percent
     double floatingFees = totalBalance * highestFloatingPercentage;
     double accountBalance = totalBalance - floatingFees;
 
@@ -1991,7 +2017,7 @@ class HomeCubit extends Cubit<HomeState> {
         listPosition[0].symbol == listPosition[1].symbol) {
       // find the required difference
       double volume = listPosition[0].volume.toDouble();
-      double requiredDollar = volume * 100 * 2; // times two - range movement
+      double requiredDollar = volume * 100 * 3; // times three is range movement
 
       // boiler code reduction
       double profitAtZero = listPosition[0].profit.toDouble();
@@ -2102,7 +2128,7 @@ class HomeCubit extends Cubit<HomeState> {
       // target amount
       double takenProfit = 100 *
           smallVolumePosition.volume.toDouble() *
-          2; // times two - range movement
+          3; // times three is range movement
 
       if (profitCheck < 0) {
         // profitCheck must be a negative
